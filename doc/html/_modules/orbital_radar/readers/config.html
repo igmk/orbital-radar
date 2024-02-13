@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>orbital_radar.readers.config &mdash; orbital-radar 0.0.1 documentation</title>
+  <title>orbital_radar.readers.config &mdash; orbital-radar 0.0.2 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
@@ -11,9 +11,11 @@
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
-        <script src="../../../_static/doctools.js?v=888ff710"></script>
-        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -39,12 +41,12 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started with Orbital-Radar</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api-reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output_description.html">Variable List - Output file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../acknowledgments.html">Acknowledgments</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
 </ul>
 
         </div>
@@ -89,10 +91,8 @@
     <span class="n">MODE</span> <span class="o">=</span> <span class="s2">&quot;r&quot;</span>
 
 
-<div class="viewcode-block" id="read_config">
-<a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.config.read_config">[docs]</a>
-<span class="k">def</span> <span class="nf">read_config</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="read_config"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.config.read_config">[docs]</a><span class="k">def</span> <span class="nf">read_config</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Reads user configuration from TOML file.</span>
 
 <span class="sd">    Parameters</span>
@@ -133,11 +133,8 @@
     <span class="k">return</span> <span class="n">config</span></div>
 
 
-
-<div class="viewcode-block" id="check_config">
-<a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.config.check_config">[docs]</a>
-<span class="k">def</span> <span class="nf">check_config</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="check_config"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.config.check_config">[docs]</a><span class="k">def</span> <span class="nf">check_config</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check config file for consistency</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -158,7 +155,6 @@
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;prepare&quot;</span><span class="p">][</span><span class="s2">&quot;general&quot;</span><span class="p">][</span><span class="s2">&quot;attenuation_correction&quot;</span><span class="p">],</span> <span class="nb">bool</span>
     <span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;attenuation_correction must be boolean&quot;</span><span class="p">)</span></div>
-
 </pre></div>
 
            </div>
