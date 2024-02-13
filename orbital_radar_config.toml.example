@@ -1,0 +1,120 @@
+# User configurations for orbital-radar
+
+[attributes]
+
+name = ''
+affiliation = ''
+address = ''
+mail = ''
+
+[prepare]
+
+[prepare.general]
+attenuation_correction = true
+attenuation_correction_input = 'cloudnet_ecmwf'  # or cloudnet_categorize
+radar_from_cloudnet = false
+height_min = -2500
+height_max = 17500
+height_res = 10
+ground_echo_ze_max = 52
+ground_echo_pulse_length = 100
+
+[prepare.groundbased]
+mean_wind = 6
+
+[prepare.airborne]
+mean_flight_velocity = 60
+
+[spaceborne_radar]
+sat_name = 'earthcare'  # or cloudsat
+file_earthcare = '/path/to/CPR_PointTargetResponse.txt'
+ms_threshold = 12
+ms_threshold_integral = 41
+k2 = 0.75
+nyquist_from_prf = false
+
+[spaceborne_radar.radar_specs]
+
+[suborbital_radar]
+
+[suborbital_radar.mirac]
+frequency = 94
+k2 = 0.86
+
+[suborbital_radar.joyrad94]
+frequency = 94
+k2 = 0.86
+
+[suborbital_radar.smhi94]
+frequency = 94
+k2 = 0.86
+
+[suborbital_radar.inoe94]
+frequency = 94
+k2 = 0.86
+
+[suborbital_radar.bco94]
+frequency = 94
+k2 = 0.86
+
+[suborbital_radar.mira]
+frequency = 35
+k2 = -1
+
+[suborbital_radar.rasta]
+frequency = 95
+k2 = 0.86
+
+[suborbital_radar.arm]
+frequency = 95
+k2 = 0.86
+
+[paths]
+
+[paths.bco]
+radar = ''
+cloudnet = ''
+output = ''
+
+[paths.jue]
+radar = ''
+cloudnet = ''
+output = ''
+
+[paths.mag]
+radar = ''
+cloudnet = ''
+output = ''
+
+[paths.min]
+radar = ''
+cloudnet = ''
+output = ''
+
+[paths.nor]
+radar = ''
+cloudnet = ''
+output = ''
+
+[paths.nya]
+radar = ''
+cloudnet = ''
+output = ''
+
+[paths.mp5]
+radar = ''
+output = ''
+
+[paths.rasta]
+radar = ''
+output = ''
+
+[paths.pamtra]
+radar = ''
+cloudnet = ''
+output = ''
+
+[paths.arm]
+radar = ''
+cloudnet = ''
+output = ''
