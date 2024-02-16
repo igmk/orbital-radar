@@ -1,6 +1,6 @@
 # Orbital-Radar
 
-This repository contains the sub-orbital to orbital transformation tool for radar observations, enabling the conversion of radar data from ground or aircraft perspectives to the satellite viewpoint. For a general overview, installation instructions, and getting started guide, please visit the documentation page at [overview](https://github.com/igmk/orbital-radar/blob/main/doc/overview.rst), [installation](https://github.com/igmk/orbital-radar/blob/main/doc/installation.rst), and [getting started](https://github.com/igmk/orbital-radar/blob/main/doc/getting_started.rst), respectively.
+This repository contains the sub-orbital to orbital transformation tool for radar observations, enabling the conversion of radar data from ground or aircraft perspectives to the satellite viewpoint. For a general overview, installation instructions, and getting started guide, please visit the documentation page at [overview](https://igmk.github.io/orbital-radar/overview.html), [installation](https://igmk.github.io/orbital-radar/installation.html), and [getting started](https://igmk.github.io/orbital-radar/getting_started.html), respectively.
 
 ## Acknowledgements
 

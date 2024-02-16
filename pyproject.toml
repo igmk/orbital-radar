@@ -40,7 +40,7 @@ dev = ["numpydoc", "sphinx", "sphinx_rtd_theme", "tox", "black"]
 orbital-radar = "orbital_radar.__main__:main"
 
 [project.urls]
-documentation = "INSERT_URL"
+documentation = "https://igmk.github.io/orbital-radar/overview.html"
 
 [tool.black]
 line-length = 79
