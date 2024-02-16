@@ -32,17 +32,17 @@ class Radar:
 
     Implemented readers
     -------------------
-    bco: Barbados Cloud Observatory, Barbados
-    jue: JOYCE, Juelich, Germany
-    mag: Magurele, Romania
-    min: Mindelo, Cape Verde
-    nor: Norunda, Sweden
-    nya: Ny-Alesund, Svalbard
-    mirac_p5: Polar 5, Mirac radar
-    rasta: Falcon, RASTA radar
-    arm: ARM sites
-    pamtra: PAMTRA simulations
-    cloudnet: cloudnet format
+    - bco: Barbados Cloud Observatory, Barbados
+    - jue: JOYCE, Juelich, Germany
+    - mag: Magurele, Romania
+    - min: Mindelo, Cape Verde
+    - nor: Norunda, Sweden
+    - nya: Ny-Alesund, Svalbard
+    - mirac_p5: Polar 5, Mirac radar
+    - rasta: Falcon, RASTA radar
+    - arm: ARM sites
+    - pamtra: PAMTRA simulations
+    - cloudnet: cloudnet format
     """
 
     def __init__(self, date, site_name, path, input_radar_format) -> None:

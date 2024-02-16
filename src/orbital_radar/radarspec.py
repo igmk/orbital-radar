@@ -375,7 +375,8 @@ class RadarBeam:
         """
         Calculates the radar wavelength from the radar frequency.
 
-        Units:
+        Units
+        -----
         - frequency: radar frequency [Hz]
         - wavelength: radar wavelength [m]
         - speed of light: speed of light [m s-1]
