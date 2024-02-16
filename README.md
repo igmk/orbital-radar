@@ -9,4 +9,4 @@ The code was developed as part of two projects funded by the European Space Agen
 - **FRM4Radar**: Cloud Profiling Radar Network for Satellite Validation (Contract No. 4000122916/17/I-EF)
 - **ACPV**: Best practice protocol for validation of Aerosol, Cloud, and Precipitation Profiles (Contract No. 4000140645/23/I-NS)
 
-We acknowledge the support of ESA, University of Cologne, University of Stony Brook, and McGill University.
+We acknowledge the support of ESA, University of Cologne, Stony Brook University, and McGill University.
