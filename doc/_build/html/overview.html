@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overview &mdash; orbital-radar 0.0.2 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="Orbital-radar" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            orbital-radar
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#supported-data-formats">1. Supported data formats:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#structure-of-the-code">2. Structure of the code:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example">3. Example:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-formats">4. Output formats:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#use-of-the-code">5. Use of the Code:</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started with Orbital-Radar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api-reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output_description.html">Variable List - Output file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">orbital-radar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/overview.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">¶</a></h1>
+<p>orbital-radar.py (Pfitzenmaier et al., 2024 - in preparation) is a Python package which
+transforms suborbital profiling cloud radar data (ground-based or air-born) into
+synthetical satellite cloud profiling radar (CPR). An example is the CPR of ESAs EarthCARE
+mission; NASA’s CloudSat mission can be simulated, too. By resampling the input data, the
+code mimics the CPR hardware specifications, calculates the noise-free CPR reflectivity
+and Doppler velocity fields, and, in an additional step, adds the system’s characteristic
+noise and errors. Using this optical-radar.py generates synthetic L1 satellite CPR data files.</p>
+<p>The code can handle several cloud radar data input formats. Therefore, it is possible to
+transform large ground-based radar data sets from networks such as ACTRIS (<a class="reference external" href="https://cloudnet.fmi.fi/">ACTRIS data portal</a>)
+or ARM (<a class="reference external" href="https://www.arm.gov/">ARM web page</a>) with suborbital-radar.py.
+So statistically robust data sets are generated, which can be used for algorithm testing,
+Cal/Val method development, or testing new satellite configurations.</p>
+<section id="supported-data-formats">
+<h2>1. Supported data formats:<a class="headerlink" href="#supported-data-formats" title="Permalink to this heading">¶</a></h2>
+<p>To support a broad user community, the code supports the following input formats for radar data:</p>
+<ul class="simple">
+<li><p>Generic Earth Observation Metadata Standard (GEOMS) from ESA and NASA
+(<a class="reference external" href="https://evdc.esa.int/documentation/geoms/">GEOMS information link</a>)</p></li>
+<li><p>Cloudnet categorisation file; Cloud Remote Sensing format from ACTRIS
+(<a class="reference external" href="https://cloudnet.fmi.fi/">ACTRIS data portal</a>)</p></li>
+<li><p>ARM radar data format (<a class="reference external" href="https://www.arm.gov/">ARM web page</a>)</p></li>
+<li><p>RPG 94 GHz AC3 data format based on University of Cologne radar processing code
+(<cite>GitHub repository of the Matlab processing &lt;https://github.com/igmk/w-radar&gt;</cite>)</p></li>
+<li><p>Air-plane: MIRAC-A data from Polar 5 (AWI, Bremerhaven, Germany)</p></li>
+<li><p>Air-plane: RASTA data from Falcon (LACMOS, Paris, France)</p></li>
+</ul>
+</section>
+<section id="structure-of-the-code">
+<h2>2. Structure of the code:<a class="headerlink" href="#structure-of-the-code" title="Permalink to this heading">¶</a></h2>
+<p>The code structure is illustrated in the flowchart.</p>
+<figure class="align-center" id="id1">
+<a class="reference internal image-reference" href="_images/pic_flow_chart_suborbital_radar.png"><img alt="_images/pic_flow_chart_suborbital_radar.png" src="_images/pic_flow_chart_suborbital_radar.png" style="width: 600px;" /></a>
+<figcaption>
+<p><span class="caption-text">Workflow of suborbital-radar.py .</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Further explanations about the single steps of the code, parametrisations or thresholds used
+in the tool are presented in Pfitzenmaier et al., 2024 (in preperation)</p>
+</section>
+<section id="example">
+<h2>3. Example:<a class="headerlink" href="#example" title="Permalink to this heading">¶</a></h2>
+<p>The following section shows an example data case simulated with orbital-radar.py. Simulations
+based on MIRAC-A measurements from the ACTRIS site JOYCE, Jülich, Germany, from 6th April 2021.
+The figure shows input data (first and fourth row) and all the intermediate products of the
+code, as well as the quality flags calculated.</p>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="_images/example_joyce_20210406_210km_280km.png"><img alt="_images/example_joyce_20210406_210km_280km.png" src="_images/example_joyce_20210406_210km_280km.png" style="width: 600px;" /></a>
+<figcaption>
+<p><span class="caption-text">Example: Synthetic EarthCARE CPR for MIRAC-A data at ACTRIS site JOYCE, Jülich, Germany,
+from 6th April 2021.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Bullet points explain the figure from top to bottom:</p>
+<ul class="simple">
+<li><p>ground-based radar reflectivity (Ze) input - added synthetic ground echo and axes conversion
+time-axes to along-track axis and y-axis extension towards negative hights</p></li>
+<li><p>synthetic CPR Ze field without noise - best Ze estimate from space</p></li>
+<li><p>synthetic CPR Ze field with added noise</p></li>
+<li><p>Ground-based radar Doppler velocity (Vm) input data in new coordinate system</p></li>
+<li><p>synthetic CPR Vm field without noise - best Vm estimate from space</p></li>
+<li><p>synthetic CPR Vm field with added satellite motion error</p></li>
+<li><p>synthetic CPR Vm field with added satellite motion error and NUFB filling, Doppler spectrum
+broadening and random error. Velocities are not folded</p></li>
+<li><p>synthetic CPR Vm field with all error sources added and folding applied</p></li>
+<li><p>calculated std of Ze of the ground base data to calculate the synthetic CPR (large std(Ze)
+indicates large NUBF in the synthetic CPR)</p></li>
+<li><p>Calculate the quality flag for multiple scattering (MS). 0= no MS; 1=MS in the pixels</p></li>
+<li><p>calculated quality flag for Doppler velocity folding. 0= no Doppler velocity folding within
+the volume; 1= Doppler velocity folding in the volume.</p></li>
+<li><p>calculated the expected Doppler velocity bias due to NUBF.</p></li>
+</ul>
+</section>
+<section id="output-formats">
+<h2>4. Output formats:<a class="headerlink" href="#output-formats" title="Permalink to this heading">¶</a></h2>
+<p>suborbital-radar.py provides an output formats. There will be no output mimicking the EarthCARE
+C-NOM format (<a class="reference external" href="https://earth.esa.int/eogateway/documents/20142/37627/EarthCARE-CPR-L1B-PDD.pdf">CNOM documentation</a>).
+The output option provided contains input used by and output data generated by the tool -  see
+all output data in the schematic in Sec 2. These are the input data files (ground/air-plane truth),
+synthetic CPR best estimates (no noise added to the data), and the synthetic CPR data
+(Ze and Vm fields including noise). So the users can choose their output data file depending
+on their own needs.</p>
+</section>
+<section id="use-of-the-code">
+<h2>5. Use of the Code:<a class="headerlink" href="#use-of-the-code" title="Permalink to this heading">¶</a></h2>
+<p>To get started with ‘orbital-radar.py’ please follow the instructions in Chapter.</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><a class="reference external" href="https://github.com/igmk/orbital-radar/blob/main/doc/getting_started.rst">Getting Started</a></dt><dd><p>here all additional preparations are given before the installation</p>
+</dd>
+</dl>
+</li>
+<li><p><a class="reference external" href="https://github.com/igmk/orbital-radar/blob/main/doc/installation">Installation</a>
+explaining the installation process</p></li>
+<li><p>the provided <cite>demo.ipynb</cite>-notebook will, together with the test data sets, show you how to
+use the code (repository given in Chapter
+<a class="reference external" href="https://github.com/igmk/orbital-radar/blob/main/doc/getting_started.rst">Getting Started</a>)</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Orbital-radar" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Nils Risse, Lukas Pfitzenmaier, Pavlos Kollias, Bernat Puigdomenech.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

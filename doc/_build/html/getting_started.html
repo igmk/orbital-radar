@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started with Orbital-Radar &mdash; orbital-radar 0.0.2 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api-reference.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            orbital-radar
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started with Orbital-Radar</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#download-test-data">Download Test Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#create-configuration-file">Create Configuration File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#set-environment-variable">Set Environment Variable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-simulator">Running the Simulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-file-description">Configuration File Description</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api-reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output_description.html">Variable List - Output file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">orbital-radar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting Started with Orbital-Radar</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/getting_started.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="getting-started-with-orbital-radar">
+<h1>Getting Started with Orbital-Radar<a class="headerlink" href="#getting-started-with-orbital-radar" title="Permalink to this heading">¶</a></h1>
+<p>After successfully installing the software, follow these steps to acquire the
+test data and create the configuration file. You can then run the
+simulator either from the command line or another Python script. An example
+Python script is available under <cite>examples/groundbased.ipynb</cite> for the test
+dataset.</p>
+<section id="download-test-data">
+<h2>Download Test Data<a class="headerlink" href="#download-test-data" title="Permalink to this heading">¶</a></h2>
+<p>The test data includes:</p>
+<ul class="simple">
+<li><p>One day of groundbased radar and cloudnet data from Mindelo, Cape Verde, 6 April 2022.</p></li>
+<li><p>One day of groundbased radar and cloudnet data for JOYCE, Jülich, Germany, 6 April 2021.</p></li>
+<li><p>One flight track from MIRAC-A on board of Polar-5 Aircraft, AFLUX campaign, 1 April 2019
+(Mech et al. 2022, <a class="reference external" href="https://doi.org/10.1038/s41597-022-01900-7">https://doi.org/10.1038/s41597-022-01900-7</a>)</p></li>
+<li><p>Range weighting function of the EarthCARE CPR.</p></li>
+</ul>
+<p>You can download it from sciebo at the following link:
+<a class="reference external" href="https://uni-koeln.sciebo.de/s/amrLECxo1Ifretu">Download Test Data</a>.</p>
+<p>After downloading, please unzip the ‘orbital_radar_data.zip’ archive and
+store it a location of your choice. Lateron we will define the path to the
+test data in the configuration file.</p>
+</section>
+<section id="create-configuration-file">
+<h2>Create Configuration File<a class="headerlink" href="#create-configuration-file" title="Permalink to this heading">¶</a></h2>
+<p>The configuration file contains all the necessary settings for the Orbital
+Radar software. A template of the configuration file is provided on GitHub
+for reference. Follow these steps:</p>
+<ol class="arabic simple">
+<li><p>Copy the configuration file example <code class="docutils literal notranslate"><span class="pre">orbital_radar_config.toml.example</span></code>
+from the root directory of this package to a location of your choice.</p></li>
+<li><p>Rename the copied example file to <code class="docutils literal notranslate"><span class="pre">orbital_radar_config.toml</span></code>.</p></li>
+<li><p>Modify the following keys to get started:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">radar.file_earthcare</span></code>: Set the absolute path to the EarthCARE range
+weighting function. The range weighting function is provided in the test
+data archive. If you keep the test data structure unchanged, the filename
+ends with
+<code class="docutils literal notranslate"><span class="pre">orbital_radar_data/range_weighting_function/CPR_PointTargetResponse.txt</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paths.min.radar</span></code>: Set the path for the Mindelo radar data.
+The radar data are provided in the test data archive.
+If you keep the test data structure unchanged, the path ends with
+<code class="docutils literal notranslate"><span class="pre">orbital_radar_data/groundbased/min/radar</span></code>.
+The date structure in the radar folder should remain unchanged.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paths.min.cloudnet</span></code>: Set the path for the Mindelo cloudnet data.
+The cloudnet data are provided in the test data archive.
+If you keep the test data structure unchanged, the path ends with
+<code class="docutils literal notranslate"><span class="pre">orbital_radar_data/groundbased/min/cloudnet</span></code>.
+The date structure in the cloudnet folder should remain unchanged.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paths.min.output</span></code>: Set the path for the simulation output for the
+Mindelo station. The output NetCDF file will be stored in this directory.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="set-environment-variable">
+<h2>Set Environment Variable<a class="headerlink" href="#set-environment-variable" title="Permalink to this heading">¶</a></h2>
+<p>To streamline the configuration process, it is recommended to set the
+environment variable <code class="docutils literal notranslate"><span class="pre">ORBITAL_RADAR_CONFIG_PATH</span></code>, which specifies the
+directory to the configuration file. Follow these steps:</p>
+<ol class="arabic simple">
+<li><p>Rename the <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> file in the source directory to <code class="docutils literal notranslate"><span class="pre">.env</span></code>.</p></li>
+<li><p>Add the desired path into the <code class="docutils literal notranslate"><span class="pre">.env</span></code> file.</p></li>
+</ol>
+<p>Alternatively, you can set the environment variable manually:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">ORBITAL_RADAR_CONFIG_PATH</span><span class="o">=</span>/path/to/config/file
+</pre></div>
+</div>
+<p>You can create multiple configuration files lateron and keep them inside the
+same directory. The environment variable will then allow you to switch between
+them easily.</p>
+</section>
+<section id="running-the-simulator">
+<h2>Running the Simulator<a class="headerlink" href="#running-the-simulator" title="Permalink to this heading">¶</a></h2>
+<p>Orbital-radar can be executed from a Python script, allowing flexible
+use of the simulation and visualization tools. The following example
+demonstrates how to simulate the test data:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">orbital_radar</span> <span class="kn">import</span> <span class="n">GroundBased</span>
+
+<span class="c1"># Initialize the groundbased simulator</span>
+<span class="n">grb</span> <span class="o">=</span> <span class="n">GroundBased</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">,</span>
+    <span class="n">config_file</span><span class="o">=</span><span class="s2">&quot;orbital_radar_config.toml&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Run the groundbased simulator</span>
+<span class="n">grb</span><span class="o">.</span><span class="n">run_date</span><span class="p">(</span><span class="n">date</span><span class="o">=</span><span class="s2">&quot;2022-02-14&quot;</span><span class="p">,</span> <span class="n">write_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The output of the simulation will be written to a NetCDF file to the path
+specified in the config file.</p>
+<p>The output file name is generated automatically:
+<code class="docutils literal notranslate"><span class="pre">ora_0.0.2_earthcare_l1_groundbased_min_inoe94_20220214T000000_20220214T235959.nc</span></code></p>
+<p>It contains the following information:
+- <code class="docutils literal notranslate"><span class="pre">ora</span></code>: Orbital Radar
+- <code class="docutils literal notranslate"><span class="pre">0.0.2</span></code>: Version number
+- <code class="docutils literal notranslate"><span class="pre">earthcare</span></code>: Satellite name
+- <code class="docutils literal notranslate"><span class="pre">l1</span></code>: Level of the data
+- <code class="docutils literal notranslate"><span class="pre">groundbased</span></code>: Type of the input data (groundbased or airborne)
+- <code class="docutils literal notranslate"><span class="pre">min</span></code>: Abbrevated name of the groundbased radar site
+- <code class="docutils literal notranslate"><span class="pre">inoe94</span></code>: Abbrevated name of the radar
+- <code class="docutils literal notranslate"><span class="pre">20220214T000000</span></code>: Start time of the input data
+- <code class="docutils literal notranslate"><span class="pre">20220214T235959</span></code>: End time of the input data</p>
+<p>A more comprehensive example is available under <cite>examples/groundbased.ipynb</cite>.</p>
+</section>
+<section id="command-line-interface">
+<h2>Command Line Interface<a class="headerlink" href="#command-line-interface" title="Permalink to this heading">¶</a></h2>
+<p>Orbital-radar comes with a command line interface upon installation. You can
+check out the available options using the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>orbital-radar --help
+</pre></div>
+</div>
+<p>This command simulates the groundbased test dataset using the following syntax:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>orbital-radar -g groundbased -n min -d <span class="m">2022</span>-02-14 -f orbital_radar_config.toml
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If the environment variable <code class="docutils literal notranslate"><span class="pre">ORBITAL_RADAR_CONFIG_PATH</span></code> is set via a
+<code class="docutils literal notranslate"><span class="pre">.env</span></code> file, it might not be recognized by the command line interface.
+In this case, please specify the absolute path to the configuration file
+using the <code class="docutils literal notranslate"><span class="pre">-f</span></code> option or export the environment variable manually.</p>
+</div>
+</section>
+<section id="configuration-file-description">
+<h2>Configuration File Description<a class="headerlink" href="#configuration-file-description" title="Permalink to this heading">¶</a></h2>
+<p>The following table describes the configuration file in detail.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Configuration file description</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 75%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sat_name</span></code></p></td>
+<td><p>Name of satellite in lowercase (e.g. earthcare)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">file_earthcare</span></code></p></td>
+<td><p>File path for EarthCARE range weighting function</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ms_threshold</span></code></p></td>
+<td><p>Multiple-scattering threshold before calculating integral</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ms_threshold_integral</span></code></p></td>
+<td><p>Multiple-scattering threshold for TOA to surface integral</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k2</span></code></p></td>
+<td><p>Dielectric constant for calculation of satellite radar reflectivity</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.attenuation_correction</span></code></p></td>
+<td><p>Use cloudnet for attenuation correction (true or false)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.cloudnet_product</span></code></p></td>
+<td><p>Cloudnet product (categorize or ecmwf)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.range_min</span></code></p></td>
+<td><p>Minimum range for homogenizing suborbital radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.range_max</span></code></p></td>
+<td><p>Maximum range for homogenizing suborbital radar</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.range_res</span></code></p></td>
+<td><p>Range resolution for homogenizing suborbital radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.keep_time</span></code></p></td>
+<td><p>Keep time information of suborbital radar (true or false)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.ground_echo_ze_max</span></code></p></td>
+<td><p>Maximum reflectivity for ground echo</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.ground_echo_pulse_length</span></code></p></td>
+<td><p>Ground echo pulse length (for generating artificual ground echo)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.groundbased.mean_wind</span></code></p></td>
+<td><p>Mean wind to convert ground-based radar to along-track</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prepare.airborne.mean_flight_velocity</span></code></p></td>
+<td><p>Mean flight velocity to convert airborne radar to along-track</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">paths.bco.radar</span></code></p></td>
+<td><p>Radar data path for BCO radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">paths.bco.cloudnet</span></code></p></td>
+<td><p>Cloudnet data path for BCO radar</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">paths.bco.output</span></code></p></td>
+<td><p>Output data path for BCO radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">paths.mp5.radar</span></code></p></td>
+<td><p>Radar data path for MP5 radar</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">paths.mp5.cloudnet</span></code></p></td>
+<td><p>Cloudnet data path for MP5 radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">paths.mp5.output</span></code></p></td>
+<td><p>Output data path for MP5 radar</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">attributes.name</span></code></p></td>
+<td><p>Name of the user</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">attributes.affiliation</span></code></p></td>
+<td><p>User’s affiliation</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">attributes.address</span></code></p></td>
+<td><p>User’s address</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">attributes.mail</span></code></p></td>
+<td><p>User’s email address</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">groundbased.bco.name</span></code></p></td>
+<td><p>Name of the BCO ground-based radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">groundbased.bco.frequency</span></code></p></td>
+<td><p>Frequency of the BCO radar</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">groundbased.bco.site</span></code></p></td>
+<td><p>Site of the BCO radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">groundbased.bco.location</span></code></p></td>
+<td><p>Location of the BCO radar</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">groundbased.bco.k2</span></code></p></td>
+<td><p>K2 parameter for the BCO radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">groundbased.bco.lon</span></code></p></td>
+<td><p>Longitude of the BCO radar</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">groundbased.bco.lat</span></code></p></td>
+<td><p>Latitude of the BCO radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">groundbased.bco.alt</span></code></p></td>
+<td><p>Altitude of the BCO radar</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">airborne.mp5.name</span></code></p></td>
+<td><p>Name of the Polar 5 radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">airborne.mp5.frequency</span></code></p></td>
+<td><p>Frequency of the Polar 5 radar</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">airborne.mp5.platform</span></code></p></td>
+<td><p>Platform of the Polar 5 radar</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">airborne.mp5.k2</span></code></p></td>
+<td><p>K2 parameter for the Polar 5 radar</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api-reference.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Nils Risse, Lukas Pfitzenmaier, Pavlos Kollias, Bernat Puigdomenech.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
