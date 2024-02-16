@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>orbital_radar.readers.radar &mdash; orbital-radar 0.0.2 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            orbital-radar
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started with Orbital-Radar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output_description.html">Variable List - Output file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">orbital-radar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">orbital_radar.readers.radar</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for orbital_radar.readers.radar</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This script contains all reader functions for the different radar formats. </span>
+<span class="sd">These functions are wrapped by the main function, which picks the correct</span>
+<span class="sd">reader depending on the radar site.</span>
+
+<span class="sd">The final output is always an xarray.Dataset with the two variables radar </span>
+<span class="sd">reflectivity &quot;ze&quot; in [mm6 m-3] and &quot;vm&quot; in [m s-1] as a function of range and</span>
+<span class="sd">time.</span>
+
+<span class="sd">The input Doppler velocity should be negative for downward motion and positive</span>
+<span class="sd">for upward motion. This is changed to negative upward and positive downward to</span>
+<span class="sd">match spaceborne convention.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">from</span> <span class="nn">glob</span> <span class="kn">import</span> <span class="n">glob</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp1d</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+
+<span class="kn">from</span> <span class="nn">orbital_radar.readers.cloudnet</span> <span class="kn">import</span> <span class="n">read_cloudnet</span>
+
+
+<div class="viewcode-block" id="Radar"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar">[docs]</a><span class="k">class</span> <span class="nc">Radar</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class selects the reading function for the provided site and</span>
+<span class="sd">    performs quality-checks of the imported data. The output contains &quot;ze&quot;</span>
+<span class="sd">    and &quot;vm&quot; variables.</span>
+
+<span class="sd">    Implemented readers</span>
+<span class="sd">    -------------------</span>
+<span class="sd">    bco: Barbados Cloud Observatory, Barbados</span>
+<span class="sd">    jue: JOYCE, Juelich, Germany</span>
+<span class="sd">    mag: Magurele, Romania</span>
+<span class="sd">    min: Mindelo, Cape Verde</span>
+<span class="sd">    nor: Norunda, Sweden</span>
+<span class="sd">    nya: Ny-Alesund, Svalbard</span>
+<span class="sd">    mirac_p5: Polar 5, Mirac radar</span>
+<span class="sd">    rasta: Falcon, RASTA radar</span>
+<span class="sd">    arm: ARM sites</span>
+<span class="sd">    pamtra: PAMTRA simulations</span>
+<span class="sd">    cloudnet: cloudnet format</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">site_name</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">input_radar_format</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads hourly radar data for a specific site and date with these</span>
+<span class="sd">        standardized output variables:</span>
+<span class="sd">        - Radar reflectivity (ze) in mm6 m-3</span>
+<span class="sd">        - Mean Doppler velocity (vm) in m s-1</span>
+<span class="sd">        - Range as height above NN (range) in m</span>
+<span class="sd">        - Time (time)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        date : pd.Timestamp</span>
+<span class="sd">            Radar data will be read for this day</span>
+<span class="sd">        site_name : str</span>
+<span class="sd">            Name of the radar site (e.g. Mindelo)</span>
+<span class="sd">        path : str</span>
+<span class="sd">            Directory of radar data. The NetCDF files are expected inside a</span>
+<span class="sd">            sub-folder structure starting from path: &quot;path/yyyy/mm/dd/*.nc&quot;.</span>
+<span class="sd">            Other options are not implemented yet.</span>
+<span class="sd">        input_radar_format : str</span>
+<span class="sd">            Format of input NetCDF radar data (uoc_v0, uoc_v1, uoc_v2,</span>
+<span class="sd">            uoc_geoms, bco, mirac_p5). Default is cloudnet. Otherwise, these</span>
+<span class="sd">            formats might be correct: uoc_v0 for nya, uoc_v1 for jue, uoc_v2</span>
+<span class="sd">            for nor and mag, geoms for min, bco for bco, mirac_p5 for mp5.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">date</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">site_name</span> <span class="o">=</span> <span class="n">site_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_date_path</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">()</span>
+
+        <span class="c1"># defines the reader for each site</span>
+        <span class="n">readers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;uoc_v0&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_uoc_v0</span><span class="p">,</span>
+            <span class="s2">&quot;uoc_v1&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_uoc_v1</span><span class="p">,</span>
+            <span class="s2">&quot;uoc_v2&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_uoc_v2</span><span class="p">,</span>
+            <span class="s2">&quot;geoms&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_geoms</span><span class="p">,</span>
+            <span class="s2">&quot;bco&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_bco</span><span class="p">,</span>
+            <span class="s2">&quot;mirac_p5&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_mirac_p5</span><span class="p">,</span>
+            <span class="s2">&quot;cloudnet&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_cloudnet</span><span class="p">,</span>
+            <span class="s2">&quot;pamtra&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_pamtra</span><span class="p">,</span>
+            <span class="s2">&quot;rasta&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_rasta</span><span class="p">,</span>
+            <span class="s2">&quot;arm&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_arm</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">readers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">input_radar_format</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No reader that handles input format </span><span class="si">{</span><span class="n">input_radar_format</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Please choose one of </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">readers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">reader</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">==</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No radar data found.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Vm sign convention: negative=upward, &quot;</span> <span class="s2">&quot;positive=downward&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Quality checks for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">site_name</span><span class="si">}</span><span class="s2"> radar data.&quot;</span><span class="p">)</span>
+
+            <span class="c1"># ensure ze and vm variables exist</span>
+            <span class="k">assert</span> <span class="s2">&quot;ze&quot;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="s2">&quot;vm&quot;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">)</span>
+
+            <span class="c1"># ensure same dimension order</span>
+            <span class="k">if</span> <span class="s2">&quot;height&quot;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">dims</span><span class="p">):</span>
+                <span class="n">dim_order</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;height&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dim_order</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;range&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">ze</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">*</span><span class="n">dim_order</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">*</span><span class="n">dim_order</span><span class="p">)</span>
+
+            <span class="c1"># ensure reasonable value ranges</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">ze</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">ze</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+            <span class="p">),</span> <span class="s2">&quot;Ze out of range.&quot;</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">ze</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="mi">10</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">ze</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">&lt;</span> <span class="mi">100</span>
+            <span class="p">),</span> <span class="s2">&quot;Ze out of range.&quot;</span>
+
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">80</span>
+            <span class="p">),</span> <span class="s2">&quot;Vm values out of range.&quot;</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">80</span>
+            <span class="p">),</span> <span class="s2">&quot;Vm values out of range.&quot;</span>
+
+            <span class="c1"># make sure that alt is in the data</span>
+            <span class="k">assert</span> <span class="s2">&quot;alt&quot;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">),</span> <span class="s2">&quot;Altitude not found.&quot;</span>
+
+<div class="viewcode-block" id="Radar.make_date_path"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.make_date_path">[docs]</a>    <span class="k">def</span> <span class="nf">make_date_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates path with date structure if it exists. Otherwise, uses regular</span>
+<span class="sd">        path without date extension.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">date_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%Y&quot;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%m&quot;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">date_path</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">date_path</span>
+
+        <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
+            <span class="k">pass</span>  <span class="c1"># use regular path without date extension</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The radar data path </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2"> does not exist&quot;</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.get_all_files"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.get_all_files">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Lists all radar files in the directory.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pattern : str</span>
+<span class="sd">            Specific file pattern depending on the product.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            list of all files inside the directory</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pattern_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern_path</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="ne">Warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No files found with pattern: </span><span class="si">{</span><span class="n">pattern_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">files</span></div>
+
+<div class="viewcode-block" id="Radar.status_message"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.status_message">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This message will be printed while reading the radar data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reading radar file </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.remove_duplicate_times"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.remove_duplicate_times">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Removes duplicate times.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ds : xr.Dataset</span>
+<span class="sd">            Any data with a &quot;time&quot; coordinate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ds</span></div>
+
+<div class="viewcode-block" id="Radar.convert_and_sort_time"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.convert_and_sort_time">[docs]</a>    <span class="k">def</span> <span class="nf">convert_and_sort_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_time</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert time in seconds since base to np.datetime64 format and sort</span>
+<span class="sd">        time.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        base_time : str</span>
+<span class="sd">            Base time as string (e.g. &quot;1970-01-01&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+            <span class="s2">&quot;timedelta64[s]&quot;</span>
+        <span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="n">base_time</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">time</span><span class="p">))</span>
+
+        <span class="c1"># ensure that time of files matches provided date</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">to_datetime64</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">time</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;D&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.read_uoc_v2"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_uoc_v2">[docs]</a>    <span class="k">def</span> <span class="nf">read_uoc_v2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function reads the radar netCDF files of the RPG w-band radar</span>
+<span class="sd">        The data are precessed with the Matlab code of the Uuniversity of</span>
+<span class="sd">        Cologne, UoC. They correspond to the level 2 version of the data</span>
+<span class="sd">        processing</span>
+
+<span class="sd">        Units of file:</span>
+<span class="sd">        ze unit: mm6 m-3</span>
+<span class="sd">        vm unit: m s-1</span>
+
+<span class="sd">        Note: fill value -999 in attributes not recognized by xarray.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="s2">&quot;*compact_v2.nc&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">decode_times</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># override keeps attributes from the last file opened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;vm&quot;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">],</span> <span class="n">combine_attrs</span><span class="o">=</span><span class="s2">&quot;override&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># extract instrument location and altitude</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;zsl&quot;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_and_sort_time</span><span class="p">(</span><span class="n">base_time</span><span class="o">=</span><span class="s2">&quot;2001-01-01&quot;</span><span class="p">)</span>
+
+        <span class="c1"># replace fill_value by nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">999</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.read_uoc_v0"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_uoc_v0">[docs]</a>    <span class="k">def</span> <span class="nf">read_uoc_v0</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function reads the radar netCDF files of the RPG w-band radar</span>
+<span class="sd">        The data are precessed with the Matlab code of the Uuniversity of</span>
+<span class="sd">        Cologne, UoC. They correspond to the level 2 version of the data</span>
+<span class="sd">        processing</span>
+
+<span class="sd">        Units of file:</span>
+<span class="sd">        ze unit: dBZ</span>
+<span class="sd">        vm unit: m s-1</span>
+
+<span class="sd">        Note: Only one file per day</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="s2">&quot;*joyrad94_nya_lv1b_*&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">decode_times</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="s2">&quot;range&quot;</span><span class="p">})</span>
+
+            <span class="c1"># round times to full seconds</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># override keeps attributes from the last file opened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;vm&quot;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">],</span> <span class="n">combine_attrs</span><span class="o">=</span><span class="s2">&quot;override&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># extract instrument location and altitude</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;instrument_altitude&quot;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_and_sort_time</span><span class="p">(</span><span class="n">base_time</span><span class="o">=</span><span class="s2">&quot;2001-01-01&quot;</span><span class="p">)</span>
+
+        <span class="c1"># convert from dB to linear units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Radar.read_uoc_v1"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_uoc_v1">[docs]</a>    <span class="k">def</span> <span class="nf">read_uoc_v1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function reads the radar netCDF files of the RPG w-band radar</span>
+<span class="sd">        The data are precessed with the Matlab code of the Uuniversity of</span>
+<span class="sd">        Cologne, UoC. They correspond to the level 2 version of the data</span>
+<span class="sd">        processing</span>
+
+<span class="sd">        Units of file:</span>
+<span class="sd">        ze unit: mm6 m-3</span>
+<span class="sd">        vm unit: m s-1</span>
+
+<span class="sd">        Note: Doppler spectra are not read to improve performance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="s2">&quot;*ZEN_v2.nc&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
+
+            <span class="n">xr_kwds</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">drop_variables</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sze&quot;</span><span class="p">],</span> <span class="n">decode_times</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="o">**</span><span class="n">xr_kwds</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># override keeps attributes from the last file opened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;vm&quot;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">],</span> <span class="n">combine_attrs</span><span class="o">=</span><span class="s2">&quot;override&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># extract instrument location and altitude</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;zsl&quot;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_and_sort_time</span><span class="p">(</span><span class="n">base_time</span><span class="o">=</span><span class="s2">&quot;2001-01-01&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.read_geoms"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_geoms">[docs]</a>    <span class="k">def</span> <span class="nf">read_geoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function reads the radar netCDF files of the RPG w-band radar</span>
+<span class="sd">        The data are precessed with the Matlab code of the Uuniversity of</span>
+<span class="sd">        Cologne, UoC. They correspond to the level 2 version of the data</span>
+<span class="sd">        processing</span>
+
+<span class="sd">        Units of file:</span>
+<span class="sd">        ze unit: mm6 m-3</span>
+<span class="sd">        vm unit: m s-1</span>
+
+<span class="sd">        Note: fill value -999 in attributes not recognized by xarray.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="s2">&quot;*groundbased_radar_profiler*&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">decode_times</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;RANGE&quot;</span><span class="p">:</span> <span class="s2">&quot;range&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;DATETIME&quot;</span><span class="p">:</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;RADAR.REFLECTIVITY.FACTOR&quot;</span><span class="p">:</span> <span class="s2">&quot;ze&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;DOPPLER.VELOCITY_MEAN&quot;</span><span class="p">:</span> <span class="s2">&quot;vm&quot;</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># add range and time as coordinates</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;range&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;range&quot;</span><span class="p">]</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span>
+
+            <span class="c1"># override keeps attributes from the last file opened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;vm&quot;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">],</span> <span class="n">combine_attrs</span><span class="o">=</span><span class="s2">&quot;override&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># extract instrument location and altitude</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;LONGITUDE.INSTRUMENT&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;LATITUDE.INSTRUMENT&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ALTITUDE.INSTRUMENT&quot;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_and_sort_time</span><span class="p">(</span><span class="n">base_time</span><span class="o">=</span><span class="s2">&quot;2001-01-01&quot;</span><span class="p">)</span>
+
+        <span class="c1"># replace fill_value by nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">999</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.read_bco"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_bco">[docs]</a>    <span class="k">def</span> <span class="nf">read_bco</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function reads the radar netCDF files of the RPG w-band radar</span>
+<span class="sd">        The data are precessed with the Matlab code of the Uuniversity of</span>
+<span class="sd">        Cologne, UoC. They correspond to the level 2 version of the data</span>
+<span class="sd">        processing</span>
+
+<span class="sd">        Units of file:</span>
+<span class="sd">        ze unit: dBZ</span>
+<span class="sd">        vm unit: m s-1</span>
+
+<span class="sd">        Note: Only one file per day</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;*</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">.nc&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">decode_times</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s2">&quot;Ze&quot;</span><span class="p">:</span> <span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;VEL&quot;</span><span class="p">:</span> <span class="s2">&quot;vm&quot;</span><span class="p">})</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># override keeps attributes from the last file opened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;vm&quot;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">],</span> <span class="n">combine_attrs</span><span class="o">=</span><span class="s2">&quot;override&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># extract instrument location and altitude</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_and_sort_time</span><span class="p">(</span><span class="n">base_time</span><span class="o">=</span><span class="s2">&quot;1970-01-01&quot;</span><span class="p">)</span>
+
+        <span class="c1"># convert from dB to linear units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">])</span>
+
+        <span class="c1"># apply dBz threshold</span>
+        <span class="n">dbz_threshold</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">95.5</span> <span class="o">/</span> <span class="mf">10.0</span><span class="p">)</span>
+        <span class="n">dbz_noise_level</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;range&quot;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">dbz_threshold</span>
+        <span class="n">dbz_noise_level</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+            <span class="n">dbz_noise_level</span><span class="p">,</span>
+            <span class="n">dims</span><span class="o">=</span><span class="s2">&quot;range&quot;</span><span class="p">,</span>
+            <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;range&quot;</span><span class="p">]},</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">dbz_noise_level</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">dbz_noise_level</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.read_mirac_p5"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_mirac_p5">[docs]</a>    <span class="k">def</span> <span class="nf">read_mirac_p5</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function reads the radar netCDF files of the RPG W-band radar</span>
+<span class="sd">        onboard the Polar 5 aircraft.</span>
+
+<span class="sd">        Units of file:</span>
+<span class="sd">        ze unit: dBZ</span>
+
+<span class="sd">        Note: no mean Doppler velocity available.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;*</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">*.nc&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">decode_times</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s2">&quot;Ze&quot;</span><span class="p">:</span> <span class="s2">&quot;ze&quot;</span><span class="p">})</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># override keeps attributes from the last file opened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">],</span> <span class="n">combine_attrs</span><span class="o">=</span><span class="s2">&quot;override&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># extract instrument location and altitude</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_and_sort_time</span><span class="p">(</span><span class="n">base_time</span><span class="o">=</span><span class="s2">&quot;2017-01-01&quot;</span><span class="p">)</span>
+
+        <span class="c1"># replace fill_value by nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">999</span><span class="p">)</span>
+
+        <span class="c1"># add dummy variable for Doppler velocity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+            <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;height&quot;</span><span class="p">],</span>
+            <span class="n">coords</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">],</span>
+            <span class="p">},</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.read_cloudnet"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_cloudnet">[docs]</a>    <span class="k">def</span> <span class="nf">read_cloudnet</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads radar reflectivity and Doppler velocity from Cloudnet categorize</span>
+<span class="sd">        files.</span>
+
+<span class="sd">        Note: Cloudnet height is already in height above mean sea level.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">read_cloudnet</span><span class="p">(</span>
+            <span class="n">attenuation_correction_input</span><span class="o">=</span><span class="s2">&quot;cloudnet_categorize&quot;</span><span class="p">,</span>
+            <span class="n">date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="p">,</span>
+            <span class="n">site_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">site_name</span><span class="p">,</span>
+            <span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+            <span class="n">add_date</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s2">&quot;Z&quot;</span><span class="p">:</span> <span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;v&quot;</span><span class="p">:</span> <span class="s2">&quot;vm&quot;</span><span class="p">})</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;vm&quot;</span><span class="p">]]</span>
+
+        <span class="c1"># extract instrument location and altitude</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;longitude&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;altitude&quot;</span><span class="p">]</span>
+
+        <span class="c1"># convert from dB to linear units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">])</span>
+
+        <span class="c1"># set inf ze to nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="p">)</span>
+
+        <span class="c1"># set very low vm to nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">500</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">500</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.read_pamtra"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_pamtra">[docs]</a>    <span class="k">def</span> <span class="nf">read_pamtra</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads PAMTRA simulation for a point location as a function of time.</span>
+
+<span class="sd">        Attenuation: The output radar reflectivity contains attenuation for</span>
+<span class="sd">        bottom-up view (groundbased radar), and additionally one radar</span>
+<span class="sd">        reflectivity without attenuation.</span>
+
+<span class="sd">        Convention of output:</span>
+<span class="sd">        ze: radar reflectivity without attenuation</span>
+<span class="sd">        ze_top_down: radar reflectivity with attenuation for top-down view</span>
+<span class="sd">        ze_bottom_up: radar reflectivity with attenuation for bottom-up view</span>
+
+<span class="sd">        Units of file:</span>
+<span class="sd">        ze unit: dBZ</span>
+<span class="sd">        vm unit: m s-1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;*</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">*v1.nc&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;*</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">*v0.nc&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="c1"># currently, only 94 GHz simulations are supported</span>
+            <span class="k">assert</span> <span class="n">ds</span><span class="o">.</span><span class="n">grid_y</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">grid_y</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># change heightbins to actual height values</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">height</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="s2">&quot;grid_x&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">grid_x</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s2">&quot;heightbins&quot;</span><span class="p">:</span> <span class="s2">&quot;height&quot;</span><span class="p">})</span>
+
+            <span class="c1"># rename variables</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;Ze&quot;</span><span class="p">:</span> <span class="s2">&quot;ze&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Radar_MeanDopplerVel&quot;</span><span class="p">:</span> <span class="s2">&quot;vm&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;datatime&quot;</span><span class="p">:</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;lon&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;lat&quot;</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+            <span class="k">assert</span> <span class="n">ds</span><span class="o">.</span><span class="n">frequency</span> <span class="o">==</span> <span class="mi">94</span>
+            <span class="k">assert</span> <span class="n">ds</span><span class="o">.</span><span class="n">radar_polarisation</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="n">ds</span><span class="o">.</span><span class="n">radar_peak_number</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span>
+
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span>
+                <span class="n">frequency</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">radar_polarisation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">radar_peak_number</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span>
+                <span class="n">frequency</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">radar_polarisation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">radar_peak_number</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s2">&quot;grid_x&quot;</span><span class="p">:</span> <span class="s2">&quot;time&quot;</span><span class="p">})</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()</span>
+
+            <span class="c1"># check if attenuation correction was performed by pamtra</span>
+            <span class="n">props</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;: &quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">p</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;: &quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">)</span>
+            <span class="p">}</span>
+
+            <span class="c1"># two-way attenuation handling</span>
+            <span class="n">da_att</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">Attenuation_Hydrometeors</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">frequency</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="o">+</span> <span class="n">ds</span><span class="o">.</span><span class="n">Attenuation_Atmosphere</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">frequency</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">da_att_bu</span> <span class="o">=</span> <span class="n">da_att</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="s2">&quot;height&quot;</span><span class="p">)</span>
+            <span class="n">da_att_td</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">da_att</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">height</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="s2">&quot;height&quot;</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">height</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="c1"># radar reflectivity contains no attenuation</span>
+            <span class="k">if</span> <span class="n">props</span><span class="p">[</span><span class="s2">&quot;radar_attenuation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;disabled&quot;</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="c1"># radar reflectivity contains attenuation for top-down view</span>
+            <span class="k">elif</span> <span class="n">props</span><span class="p">[</span><span class="s2">&quot;radar_attenuation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;top-down&quot;</span><span class="p">:</span>
+                <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">da_att_td</span>
+
+            <span class="c1"># radar reflectivity contains attenuation for bottom-up view</span>
+            <span class="k">elif</span> <span class="n">props</span><span class="p">[</span><span class="s2">&quot;radar_attenuation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;bottom-up&quot;</span><span class="p">:</span>
+                <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">da_att_bu</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Attenuation correction </span><span class="si">{</span><span class="n">props</span><span class="p">[</span><span class="s1">&#39;radar_attenuation&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> not &quot;</span>
+                    <span class="s2">&quot;supported.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze_bottom_up&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">da_att_bu</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze_top_down&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">da_att_td</span>
+
+            <span class="c1"># override keeps attributes from the last file opened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;vm&quot;</span><span class="p">,</span> <span class="s2">&quot;ze_bottom_up&quot;</span><span class="p">,</span> <span class="s2">&quot;ze_top_down&quot;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">],</span>
+                <span class="n">combine_attrs</span><span class="o">=</span><span class="s2">&quot;override&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># add longitude and latitude</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">&quot;alt&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No altitude found in PAMTRA file. Setting alt to 0 m.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># convert from dB to linear units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze_bottom_up&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze_bottom_up&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze_top_down&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze_top_down&quot;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Radar.read_rasta"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_rasta">[docs]</a>    <span class="k">def</span> <span class="nf">read_rasta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function reads the radar netCDF files of the airborne RASTA radar.</span>
+<span class="sd">        The time-dependent height is interpolated onto a regular height grid.</span>
+<span class="sd">        No correction for gas attenuation is applied (gaseous_twowayatt).</span>
+<span class="sd">        The horizontal aircraft speed is also read.</span>
+
+<span class="sd">        The following two flags are applied to ze and vm:</span>
+
+<span class="sd">        First flag array: flag (1 and 2 are removed)</span>
+<span class="sd">        -4: nadir not available</span>
+<span class="sd">        -3: Last gates not valid</span>
+<span class="sd">        -2: First gates not valid</span>
+<span class="sd">        -1: beyond maximum range</span>
+<span class="sd">        0: no cloud</span>
+<span class="sd">        1: cloud or precipitation</span>
+<span class="sd">        2: possible cloud</span>
+<span class="sd">        3: ground echo</span>
+<span class="sd">        4: ghost ground echo (downward domain)</span>
+<span class="sd">        5: ghost ground echo (upward domain)</span>
+<span class="sd">        6: underground signal</span>
+<span class="sd">        7: underground noise</span>
+<span class="sd">        8: Z can be interpolated</span>
+
+<span class="sd">        Second flag array: flag_Z_interpolated (2 and 3 are removed)</span>
+<span class="sd">        0: no interpolation</span>
+<span class="sd">        1: interpolated but data available</span>
+<span class="sd">        2: interpolated and no data available</span>
+<span class="sd">        3: ghost ground echo (upward) is interpolated</span>
+
+<span class="sd">        Units of file:</span>
+<span class="sd">        ze unit: dBZ</span>
+<span class="sd">        vm unit: m s-1</span>
+<span class="sd">        ac_speed unit: m s-1</span>
+
+<span class="sd">        Note: only the vertical-pointing antennas are used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;*</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">*.nc&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># filter data</span>
+            <span class="n">keep_data</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">flag</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">flag</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">flag_Z_interpolated</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">flag_Z_interpolated</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Z_interpolated&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Z_interpolated&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">keep_data</span><span class="p">)</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Vz&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Vz&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">keep_data</span><span class="p">)</span>
+
+            <span class="c1"># change doppler velocity from positive upward to negative upward</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Vz&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Vz&quot;</span><span class="p">]</span>
+
+            <span class="c1"># rename variables</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;lon&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;lat&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="s2">&quot;height_index&quot;</span><span class="p">,</span>  <span class="c1"># this is not actual height</span>
+                    <span class="s2">&quot;aircraft_vh&quot;</span><span class="p">:</span> <span class="s2">&quot;ac_speed&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;altitude&quot;</span><span class="p">:</span> <span class="s2">&quot;alt&quot;</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+            <span class="c1"># interpolate onto regular height grid</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">15000</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+            <span class="n">ze_height</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">])))</span>
+            <span class="n">vm_height</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">])))</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">time</span><span class="p">)):</span>
+
+                <span class="c1"># interpolate ze in linear space</span>
+                <span class="n">f_ze</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span>
+                    <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height_2D&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">,</span>
+                    <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Z_interpolated&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">),</span>
+                    <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+                    <span class="n">fill_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                    <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">ze_height</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">f_ze</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+                <span class="c1"># interpolate vm</span>
+                <span class="n">f_vm</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span>
+                    <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height_2D&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">,</span>
+                    <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Vz&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                    <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+                    <span class="n">fill_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                    <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">vm_height</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">f_vm</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+            <span class="c1"># add variables to dataset and name them ze and vm</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+                <span class="n">ze_height</span><span class="p">,</span>
+                <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;height&quot;</span><span class="p">],</span>
+                <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span> <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]},</span>
+            <span class="p">)</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;vm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+                <span class="n">vm_height</span><span class="p">,</span>
+                <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;height&quot;</span><span class="p">],</span>
+                <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span> <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]},</span>
+            <span class="p">)</span>
+
+            <span class="c1"># override keeps attributes from the last file opened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;vm&quot;</span><span class="p">,</span> <span class="s2">&quot;lon&quot;</span><span class="p">,</span> <span class="s2">&quot;lat&quot;</span><span class="p">,</span> <span class="s2">&quot;alt&quot;</span><span class="p">,</span> <span class="s2">&quot;ac_speed&quot;</span><span class="p">]],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="n">combine_attrs</span><span class="o">=</span><span class="s2">&quot;override&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">convert_and_sort_time</span><span class="p">(</span><span class="n">base_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Radar.read_arm"><a class="viewcode-back" href="../../../api/readers.html#orbital_radar.readers.radar.Radar.read_arm">[docs]</a>    <span class="k">def</span> <span class="nf">read_arm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reader for ARM radar data. The reader uses the best estimate of the</span>
+<span class="sd">        radar reflectivity.</span>
+
+<span class="sd">        Units of file:</span>
+<span class="sd">        ze unit: dBZ</span>
+<span class="sd">        vm unit: m s-1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_files</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;*</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">*.cdf&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_message</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicate_times</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;mean_doppler_velocity&quot;</span><span class="p">:</span> <span class="s2">&quot;vm&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;reflectivity_best_estimate&quot;</span><span class="p">:</span> <span class="s2">&quot;ze&quot;</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+            <span class="c1"># override keeps attributes from the last file opened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">ds</span><span class="p">[[</span><span class="s2">&quot;ze&quot;</span><span class="p">,</span> <span class="s2">&quot;vm&quot;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">],</span> <span class="n">combine_attrs</span><span class="o">=</span><span class="s2">&quot;override&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># add longitude and latitude</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;alt&quot;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_rad</span><span class="p">[</span><span class="s2">&quot;ze&quot;</span><span class="p">])</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Nils Risse, Lukas Pfitzenmaier, Pavlos Kollias, Bernat Puigdomenech.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

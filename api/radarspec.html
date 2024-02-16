@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radarspec &mdash; orbital-radar 0.0.2 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Groundbased" href="suborbital.html" />
+    <link rel="prev" title="Simulator" href="simulator.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            orbital-radar
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started with Orbital-Radar</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api-reference.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="simulator.html">Simulator</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Radarspec</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="suborbital.html">Groundbased</a></li>
+<li class="toctree-l2"><a class="reference internal" href="helpers.html">Helpers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">Plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="readers.html">Readers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="writers.html">Writers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../output_description.html">Variable List - Output file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">orbital-radar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api-reference.html">API Reference</a></li>
+      <li class="breadcrumb-item active">Radarspec</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/radarspec.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-orbital_radar.radarspec">
+<span id="radarspec"></span><h1>Radarspec<a class="headerlink" href="#module-orbital_radar.radarspec" title="Permalink to this heading">¶</a></h1>
+<p>This module contains the satellite class and functions to calculate the
+along-track and along-range averaging parameters. Main methode and  
+definitions based on Lamer et al (2020) and Schirmacher et al. (2023).</p>
+<p>Two pre-defined satellites are available: EarthCARE and CloudSat.</p>
+<p><strong>EarthCARE</strong></p>
+<ul class="simple">
+<li><p>frequency:                        Kollias et al. (2014), Table 1</p></li>
+<li><p>velocity:                         Kollias et al. (2014), Eq 4</p></li>
+<li><p>antenna diameter:                 Kollias et al. (2014), Table 1</p></li>
+<li><p>altitude:                         Kollias et al. (2014), Table 1</p></li>
+<li><p>pulse length:                     Kollias et al. (2014), Table 1</p></li>
+<li><p>along track resolution:           Kollias et al. (2014), Table 1</p></li>
+<li><p>range resolution:                 Kollias et al. (2014), Table 1</p></li>
+<li><p>ifov_factor:                      Kollias et al. (2022), Table 1</p></li>
+<li><p>ifov_scale:                       based on Tanelli et al. (2008) and as long nothing is reported it is 1 s</p></li>
+<li><p>detection limit:                  Kollias et al. (2014), Table 1</p></li>
+<li><p>pules repetition frequency (PRF): Kollias et al. (2022), Table 1</p></li>
+<li><p>noise_ze:                         Kollias et al. (2014), Table 1</p></li>
+<li><p>ze_bins:                          Hogan et al. (2005),</p></li>
+<li><p>ze_std:                           Hogan et al. (2005),</p></li>
+<li><p>ze_std_background:</p></li>
+<li><p>vm_bins_broad:                    Kollias et al. (2022), Figure 7</p></li>
+<li><p>vm_std_broad:                     Kollias et al. (2022), Figure 7</p></li>
+<li><p>vm_std_broad_background:          Kollias et al. (2022)</p></li>
+</ul>
+<p><strong>CloudSat</strong></p>
+<ul class="simple">
+<li><p>frequency:                        Kollias et al. (2014), Table 1</p></li>
+<li><p>velocity:                         Kollias et al. (2014), Eq 4</p></li>
+<li><p>antenna diameter:                 Kollias et al. (2014), Table 1</p></li>
+<li><p>altitude:                         Kollias et al. (2014), Table 1</p></li>
+<li><p>pulse length:                     Kollias et al. (2014), Table 1</p></li>
+<li><p>along track resolution:           Kollias et al. (2014), Table 1</p></li>
+<li><p>range resolution:                 Kollias et al. (2014), Table 1</p></li>
+<li><p>ifov_factor:                      Kollias et al. (2022), Table 1 for the Arctic Schirmacher et al. (2023)</p></li>
+<li><p>ifov_scale:                       Tanelli et al. (2008), “integration accurecy of the pulse is 0.968 s”</p></li>
+<li><p>detection limit:                  Kollias et al. (2014), Table 1</p></li>
+<li><p>pules repetition frequency (PRF): Kollias et al. (2014, 2022), Table 1</p></li>
+<li><p>noise_ze:</p></li>
+<li><p>ze_bins:                          Hogan et al. (2005),</p></li>
+<li><p>ze_std:                           Hogan et al. (2005),</p></li>
+<li><p>ze_std_background:</p></li>
+<li><p>vm_bins_broad:                    not used</p></li>
+<li><p>vm_std_broad:                     not used</p></li>
+<li><p>vm_std_broad_background:          not used</p></li>
+</ul>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this heading">¶</a></h2>
+<p>Hogan et al. (2005)       : <a class="reference external" href="https://doi.org/10.1175/JTECH1768.1">https://doi.org/10.1175/JTECH1768.1</a>
+Kollias et al. (2014)     : <a class="reference external" href="https://doi.org/10.1175/JTECH-D-11-00202.1">https://doi.org/10.1175/JTECH-D-11-00202.1</a>
+Kollias et al. (2022)     : <a class="reference external" href="https://doi.org/10.3389/frsen.2022.860284">https://doi.org/10.3389/frsen.2022.860284</a>
+Lamer et al. (2020)       : <a class="reference external" href="https://doi.org/10.5194/amt-13-2363-2020">https://doi.org/10.5194/amt-13-2363-2020</a>
+Schirmacher et al. (2023) : <a class="reference external" href="https://doi.org/10.5194/egusphere-2023-636">https://doi.org/10.5194/egusphere-2023-636</a>
+Tanelli et al. (2008)     : <a class="reference external" href="https://doi.org/10.1109/TGRS.2008.2002030">https://doi.org/10.1109/TGRS.2008.2002030</a></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">orbital_radar.radarspec.</span></span><span class="sig-name descname"><span class="pre">RadarBeam</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_earthcare</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sat_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nyquist_from_prf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">sat_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class manages the satellite specifications from pre-defined or user-
+specified space-borne radars. It also contains transformation functions
+for along-track and along-range averaging.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.params" title="orbital_radar.radarspec.RadarBeam.params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code></a></dt><dd><p>Prints a summary of the satellite parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.calculate_along_range" title="orbital_radar.radarspec.RadarBeam.calculate_along_range"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_along_range</span></code></a>(range_coords)</p></td>
+<td><p>Calculates along-range averaging parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.calculate_along_track" title="orbital_radar.radarspec.RadarBeam.calculate_along_track"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_along_track</span></code></a>(along_track_coords)</p></td>
+<td><p>Calculates along-track averaging parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.calculate_ifov" title="orbital_radar.radarspec.RadarBeam.calculate_ifov"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_ifov</span></code></a>()</p></td>
+<td><p>Calculates the instantaneous field of view (IFOV) from the along-track averaging parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.calculate_nyquist_velocity" title="orbital_radar.radarspec.RadarBeam.calculate_nyquist_velocity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_nyquist_velocity</span></code></a>()</p></td>
+<td><p>Calculates the Nyquist velocity from the pulse repetition frequency and the radar wavelength.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.calculate_velocity_error" title="orbital_radar.radarspec.RadarBeam.calculate_velocity_error"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_velocity_error</span></code></a>()</p></td>
+<td><p>Calculates the velocity error due to satellite velocity.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.calculate_wavelength" title="orbital_radar.radarspec.RadarBeam.calculate_wavelength"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_wavelength</span></code></a>()</p></td>
+<td><p>Calculates the radar wavelength from the radar frequency.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.calculate_weighting_functions" title="orbital_radar.radarspec.RadarBeam.calculate_weighting_functions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_weighting_functions</span></code></a>(...)</p></td>
+<td><p>Calculates the along-track and along-range weighting functions.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.create_along_range_grid" title="orbital_radar.radarspec.RadarBeam.create_along_range_grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_along_range_grid</span></code></a>(range_coords)</p></td>
+<td><p>Creates range grid at which range weighting function is evaluated.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.create_along_track_grid" title="orbital_radar.radarspec.RadarBeam.create_along_track_grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_along_track_grid</span></code></a>(along_track_coords)</p></td>
+<td><p>Creates the along-track grid.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.normalized_range_weighting_function_default" title="orbital_radar.radarspec.RadarBeam.normalized_range_weighting_function_default"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalized_range_weighting_function_default</span></code></a>(...)</p></td>
+<td><p>Defines the range weighting function for the along-range averaging.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#orbital_radar.radarspec.RadarBeam.normalized_range_weighting_function_earthcare" title="orbital_radar.radarspec.RadarBeam.normalized_range_weighting_function_earthcare"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalized_range_weighting_function_earthcare</span></code></a>()</p></td>
+<td><p>Prepares EarthCARE range weighting function for along-range averaging.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.calculate_along_range">
+<span class="sig-name descname"><span class="pre">calculate_along_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">range_coords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.calculate_along_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.calculate_along_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates along-range averaging parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>range_coords</strong><span class="classifier">array</span></dt><dd><p>range coordinates of the ground-based radar [m]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.calculate_along_track">
+<span class="sig-name descname"><span class="pre">calculate_along_track</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">along_track_coords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.calculate_along_track"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.calculate_along_track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates along-track averaging parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>along_track_coords</strong><span class="classifier">array</span></dt><dd><p>along-track coordinates of the ground-based radar [m]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.calculate_ifov">
+<span class="sig-name descname"><span class="pre">calculate_ifov</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.calculate_ifov"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.calculate_ifov" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the instantaneous field of view (IFOV) from the along-track
+averaging parameters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.calculate_nyquist_velocity">
+<span class="sig-name descname"><span class="pre">calculate_nyquist_velocity</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.calculate_nyquist_velocity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.calculate_nyquist_velocity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the Nyquist velocity from the pulse repetition frequency
+and the radar wavelength.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.calculate_velocity_error">
+<span class="sig-name descname"><span class="pre">calculate_velocity_error</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.calculate_velocity_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.calculate_velocity_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the velocity error due to satellite velocity.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.calculate_wavelength">
+<span class="sig-name descname"><span class="pre">calculate_wavelength</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.calculate_wavelength"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.calculate_wavelength" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the radar wavelength from the radar frequency.</p>
+<p>Units:
+- frequency: radar frequency [Hz]
+- wavelength: radar wavelength [m]
+- speed of light: speed of light [m s-1]</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.calculate_weighting_functions">
+<span class="sig-name descname"><span class="pre">calculate_weighting_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">along_track_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">range_coords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.calculate_weighting_functions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.calculate_weighting_functions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the along-track and along-range weighting functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>along_track_coords</strong><span class="classifier">array</span></dt><dd><p>along-track coordinates of the ground-based radar [m]</p>
+</dd>
+<dt><strong>range_coords</strong><span class="classifier">array</span></dt><dd><p>range coordinates of the ground-based radar [m]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.create_along_range_grid">
+<span class="sig-name descname"><span class="pre">create_along_range_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">range_coords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.create_along_range_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.create_along_range_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates range grid at which range weighting function is evaluated.</p>
+<p>The range grid is defined from -pulse_length to pulse_length. The
+spacing is defined by the range resolution of the ground-based radar.</p>
+<p>If the range grid is not equidistant, the range weighting function
+cannot be calculated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>range_coords</strong><span class="classifier">array</span></dt><dd><p>range coordinates of the ground-based radar [m]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.create_along_track_grid">
+<span class="sig-name descname"><span class="pre">create_along_track_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">along_track_coords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.create_along_track_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.create_along_track_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the along-track grid.</p>
+<p>The along-track grid is defined from -ifov/2 to ifov/2. The spacing
+is defined by the along-track resolution. The outermost along-track
+bins relative to the line of size always lie within the IFOV.</p>
+<p>If the along-track grid is not equidistant, the along-track weighting
+function cannot be calculated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>along_track_coords</strong><span class="classifier">array</span></dt><dd><p>along-track coordinates of the ground-based radar [m]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.normalized_range_weighting_function_default">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">normalized_range_weighting_function_default</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pulse_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">range_bins</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.normalized_range_weighting_function_default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.normalized_range_weighting_function_default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the range weighting function for the along-range averaging.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.normalized_range_weighting_function_earthcare">
+<span class="sig-name descname"><span class="pre">normalized_range_weighting_function_earthcare</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarBeam.normalized_range_weighting_function_earthcare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.normalized_range_weighting_function_earthcare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepares EarthCARE range weighting function for along-range averaging.</p>
+<p>The high-resolution weighting function is interpolated to the
+range resolution of the ground-based radar.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>range_weights</strong><span class="classifier">array</span></dt><dd><p>normalized range weighting function</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarBeam.params">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#orbital_radar.radarspec.RadarBeam.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints a summary of the satellite parameters</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="orbital_radar.radarspec.RadarSpec">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">orbital_radar.radarspec.</span></span><span class="sig-name descname"><span class="pre">RadarSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">antenna_diameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">altitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">along_track_resolution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">range_resolution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ifov_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ifov_scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detection_limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_ze</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ze_bins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ze_std</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ze_std_background</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vm_bins_broad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vm_std_broad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vm_std_broad_background</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nyquist_velocity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_repetition_frequency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">nan</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/orbital_radar/radarspec.html#RadarSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orbital_radar.radarspec.RadarSpec" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class contains the satellite parameters.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="simulator.html" class="btn btn-neutral float-left" title="Simulator" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="suborbital.html" class="btn btn-neutral float-right" title="Groundbased" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Nils Risse, Lukas Pfitzenmaier, Pavlos Kollias, Bernat Puigdomenech.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
