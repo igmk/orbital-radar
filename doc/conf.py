@@ -16,8 +16,8 @@ sys.path.insert(0, '../src')
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'orbital-radar'
-copyright = '2023, Nils Risse, Lukas Pfitzenmaier, Pavlos Kollias, Bernat Puigdomenech'
-author = 'Nils Risse, Lukas Pfitzenmaier, Pavlos Kollias, Bernat Puigdomenech'
+copyright = '2023, Lukas Pfitzenmaier, Nils Risse, Pavlos Kollias, Bernat Puigdomenech'
+author = 'Lukas Pfitzenmaier, Nils Risse, Pavlos Kollias, Bernat Puigdomenech'
 release = '0.0.2'
 
 # -- General configuration ---------------------------------------------------
