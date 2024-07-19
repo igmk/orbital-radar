@@ -176,6 +176,7 @@ class Simulator:
         # add error due to satellite motion to each doppler velocity window
         da_vel_error = xr.DataArray(self.beam.velocity_error, dims=["window"])
         ds["vm_err"] = ds["vm"] + da_vel_error
+        ds["vm_err"] = ds["vm_err"].where(ds["vm"] != 0, ds["vm"])
 
         # calculate along-track convolution and convert dask to xarray
         self.ds["ze_acon"] = ds["ze"].dot(weight).compute()
@@ -555,10 +556,10 @@ class Simulator:
         """
 
         # generate noise
-        lower = -3
-        upper = 3
+        lower = -4.5
+        upper = 4.5
         mu = 0
-        sigma = 1
+        sigma = 2
         n = np.prod(self.ds["ze_sat"].shape)
         noise = np.array(
             stats.truncnorm.rvs(

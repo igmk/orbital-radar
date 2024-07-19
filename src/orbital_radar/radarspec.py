@@ -85,7 +85,7 @@ RADARS_PREDEFINED = {
         "noise_ze": -21.5,
         "ze_bins": [-37, -25, -13],
         "ze_std": [0.5, 0.3, 0.2],
-        "ze_std_background": 0.2176,
+        "ze_std_background": 0.4252, #0.2176,
         "vm_bins_broad": [
             -37,
             -34,
