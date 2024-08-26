@@ -73,3 +73,7 @@ specific needs.
     .. code-block:: bash
 
         python -m ipykernel install --user --name=orbital-radar-env
+   
+   To make the orbital-radar tool work under Windows please check all the
+   path set in the config and other files. The slashes might be changed to
+   work for Windows. So please pay attention!
