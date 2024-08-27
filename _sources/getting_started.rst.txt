@@ -19,7 +19,7 @@ The test data includes:
 - Range weighting function of the EarthCARE CPR.
 
 You can download it from sciebo at the following link: 
-`Download Test Data <https://zenodo.org/records/12547896>` (DOI 10.5281/zenodo.12547895).
+`Download Test Data <https://zenodo.org/records/12547896>`__ (DOI 10.5281/zenodo.12547895).
 
 After downloading, please unzip the 'orbital_radar_data.zip' archive and 
 store it a location of your choice. Lateron we will define the path to the 
