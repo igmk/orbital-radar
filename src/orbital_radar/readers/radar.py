@@ -82,6 +82,7 @@ class Radar:
             "uoc_v0": self.read_uoc_v0,
             "uoc_v1": self.read_uoc_v1,
             "uoc_v2": self.read_uoc_v2,
+            "uoc_ac3": self.read_uoc_ac3,
             "geoms": self.read_geoms,
             "bco": self.read_bco,
             "mirac_p5": self.read_mirac_p5,
@@ -321,6 +322,53 @@ class Radar:
 
         # convert from dB to linear units
         self.ds_rad["ze"] = 10 ** (0.1 * self.ds_rad["ze"])
+
+    def read_uoc_ac3(self):
+        """
+        This function reads the radar netCDF files of the RPG w-band radar
+        The data are precessed with the Matlab code of the University of
+        Cologne, UoC. They correspond to the level 1a version of the data
+        processing for the ac3-data set
+
+        Units of file:
+        ze unit: dBZ
+        vm unit: m s-1
+
+        Note: Only one file per day
+        """
+
+        files = self.get_all_files("*joyrad94_nya_lv1a_*")
+
+        if len(files) == 0:
+            return None
+
+        for i, file in enumerate(files):
+            self.status_message(i, file, files)
+
+            with xr.open_dataset(file, decode_times=False) as ds:
+                ds.load()
+
+            ds = ds.rename({"height": "range"})
+
+            # round times to full seconds
+            ds["time"] = np.around(ds["time"]).astype("int")
+
+            ds = self.remove_duplicate_times(ds)
+
+            # override keeps attributes from the last file opened
+            self.ds_rad = xr.merge(
+                [ds[["ze", "vm"]], self.ds_rad], combine_attrs="override"
+            )
+
+            # extract instrument location and altitude
+            self.ds_rad["lon"] = ds["lon"]
+            self.ds_rad["lat"] = ds["lat"]
+            self.ds_rad["alt"] = ds["instrument_altitude"]
+
+        self.convert_and_sort_time(base_time="2001-01-01")
+
+        # convert from dB to linear units
+        self.ds_rad["ze"] = 10 ** (0.1 * self.ds_rad["ze"])        
 
     def read_uoc_v1(self):
         """
