@@ -81,7 +81,7 @@ RADARS_PREDEFINED = {
         "ifov_scale": 1,
         "detection_limit": -35,
         "nyquist_velocity": 5.7,
-        "pulse_repetition_frequency": 5000,
+        "pulse_repetition_frequency": 6000,
         "noise_ze": -21.5,
         "ze_bins": [-37, -25, -13],
         "ze_std": [0.5, 0.3, 0.2],
