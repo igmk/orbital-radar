@@ -252,10 +252,23 @@ class Simulator:
         )
         ds = ds.rename({"height": "height_sat"})
 
-        # calculate along-range convolution
+        # calculate along-range convolution for reflectivity
         self.ds["ze_sat"] = ds["ze_aconint"].dot(da_range_weights)
-        self.ds["vm_sat"] = ds["vm_aconint"].dot(da_range_weights)
-        self.ds["vm_sat_vel"] = ds["vm_aconint_err"].dot(da_range_weights)
+
+        # calculate reflectivity-weighted along-range convolution for Doppler velocity
+        # - reflectivity threshold set to -20 dBZ (0.01 mm^6/m^3)
+        reflectivity_threshold = 0.01
+        ze_masked = ds["ze_aconint"].where(ds["ze_aconint"] >= reflectivity_threshold, 0)
+        
+        numerator_vm_sat = (ds["vm_aconint"] * ze_masked * da_range_weights).sum("pulse_center_distance")
+        denominator_vm_sat = (ze_masked * da_range_weights).sum("pulse_center_distance")
+        self.ds["vm_sat"] = numerator_vm_sat / denominator_vm_sat
+        self.ds["vm_sat"] = self.ds["vm_sat"].where(denominator_vm_sat != 0, 0)
+
+        numerator_vm_sat_vel = (ds["vm_aconint_err"] * ze_masked * da_range_weights).sum("pulse_center_distance")
+        denominator_vm_sat_vel = (ze_masked * da_range_weights).sum("pulse_center_distance")
+        self.ds["vm_sat_vel"] = numerator_vm_sat_vel / denominator_vm_sat_vel
+        self.ds["vm_sat_vel"] = self.ds["vm_sat_vel"].where(denominator_vm_sat_vel != 0, 0)
 
     def calculate_nubf(self):
         r"""
